@@ -57,5 +57,19 @@ int parse_command(const char *line, motion_state_t *state)
         return 0;
     }
 
+    if (strcmp(cmd, "pright") == 0)
+    {
+        state->left_v = -value;
+        state->right_v = -value * 0.4f;
+        return 0;
+    }
+
+    if (strcmp(cmd, "pleft") == 0)
+    {
+        state->left_v = value;
+        state->right_v = value * 0.4f;
+        return 0;
+    }
+
     return -1;
 }
