@@ -5,6 +5,7 @@
 
 int serial_open(const char *device, int baudrate);
 int serial_read_line(int fd, char *buffer, size_t buffer_size);
+int serial_write_line(int fd, const char *text);
 void serial_close(int fd);
 
 #endif

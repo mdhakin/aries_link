@@ -19,7 +19,23 @@ static speed_t baudrate_to_flag(int baudrate)
         default:     return B9600;
     }
 }
+int serial_write_line(int fd, const char *text)
+{
+    size_t len = strlen(text);
+    if (write(fd, text, len) < 0)
+    {
+        perror("write");
+        return -1;
+    }
 
+    if (write(fd, "\n", 1) < 0)
+    {
+        perror("write");
+        return -1;
+    }
+
+    return 0;
+}
 int serial_open(const char *device, int baudrate)
 {
     int fd = open(device, O_RDWR | O_NOCTTY);
