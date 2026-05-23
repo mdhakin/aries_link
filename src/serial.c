@@ -38,7 +38,7 @@ int serial_write_line(int fd, const char *text)
 }
 int serial_open(const char *device, int baudrate)
 {
-    int fd = open(device, O_RDWR | O_NOCTTY);
+    int fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd < 0)
     {
         perror("open");
@@ -71,7 +71,7 @@ int serial_open(const char *device, int baudrate)
     tty.c_oflag = 0;
     tty.c_lflag = 0;
 
-    tty.c_cc[VMIN]  = 1;
+    tty.c_cc[VMIN]  = 0;
     tty.c_cc[VTIME] = 0;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0)
@@ -136,4 +136,53 @@ void serial_close(int fd)
     {
         close(fd);
     }
+}
+
+int serial_try_read_line(int fd, char *buffer, size_t buffer_size)
+{
+    static char rx_buffer[512];
+    static size_t rx_length = 0;
+
+    char temp[64];
+
+    ssize_t n = read(fd, temp, sizeof(temp));
+
+    if (n < 0)
+    {
+        return 0;
+    }
+
+    if (n == 0)
+    {
+        return 0;
+    }
+
+    for (ssize_t i = 0; i < n; i++)
+    {
+        char c = temp[i];
+
+        if (c == '\r')
+        {
+            continue;
+        }
+
+        if (c == '\n')
+        {
+            rx_buffer[rx_length] = '\0';
+
+            strncpy(buffer, rx_buffer, buffer_size - 1);
+            buffer[buffer_size - 1] = '\0';
+
+            rx_length = 0;
+
+            return 1;
+        }
+
+        if (rx_length + 1 < sizeof(rx_buffer))
+        {
+            rx_buffer[rx_length++] = c;
+        }
+    }
+
+    return 0;
 }

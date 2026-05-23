@@ -1,11 +1,14 @@
+
+#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <time.h>
 #include "info_board.h"
 #include "parser.h"
 #include "serial.h"
 #include "udp_tx.h"
+#include "ramp.h"
 
 static int send_motion_packet(int udp_sock, const motion_state_t *state)
 {
@@ -14,14 +17,14 @@ static int send_motion_packet(int udp_sock, const motion_state_t *state)
     snprintf(
         msg,
         sizeof(msg),
-        "3 v %.2f\n"
-        "3 kp %.2f\n"
-        "3 kd %.2f\n"
-        "3 t %.2f\n"
-        "4 v %.2f\n"
-        "4 kp %.2f\n"
-        "4 kd %.2f\n"
-        "4 t %.2f\n",
+        "1 v %.2f\n"
+        "1 kp %.2f\n"
+        "1 kd %.2f\n"
+        "1 t %.2f\n"
+        "2 v %.2f\n"
+        "2 kp %.2f\n"
+        "2 kd %.2f\n"
+        "2 t %.2f\n",
         state->left_v,
         state->kp,
         state->kd,
@@ -34,13 +37,27 @@ static int send_motion_packet(int udp_sock, const motion_state_t *state)
     return udp_send_text(udp_sock, msg);
 }
 
+static void sleep_ms(long milliseconds)
+{
+    struct timespec ts;
+
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000L;
+
+    nanosleep(&ts, NULL);
+}
+
 int main(void)
 {
     info_board_t board;
-    motion_state_t state;
+    motion_state_t current_state;
+    motion_state_t target_state;
+    ramp_config_t ramp_config;
 
     info_board_init(&board);
-    motion_state_init(&state);
+    motion_state_init(&current_state);
+    motion_state_init(&target_state);
+    ramp_config_init(&ramp_config);
 
     int serial_fd = serial_open("/dev/ttyUSB0", 9600);
     if (serial_fd < 0)
@@ -61,36 +78,49 @@ int main(void)
     {
         char line[256];
 
-        if (serial_read_line(serial_fd, line, sizeof(line)) <= 0)
+        int result = serial_try_read_line(
+            serial_fd,
+            line,
+            sizeof(line));
+
+        if (result > 0)
         {
-            continue;
-        }
+            printf("RX: %s\n", line);
 
-        printf("RX: %s\n", line);
-
-        if (strcmp(line, "version") == 0)
-        {
-            char response[128];
-            snprintf(response, sizeof(response), "ok version %s", board.version);
-
-            serial_write_line(serial_fd, response);
-            continue;
-        }
-
-        if (parse_command(line, &state) == 0)
-        {
-            if (send_motion_packet(udp_sock, &state) != 0)
+            if (strcmp(line, "version") == 0)
             {
-                printf("Failed to send motion packet.\n");
-                break;
-            }
+                char response[128];
 
-            serial_write_line(serial_fd, "ok motion");
+                snprintf(
+                    response,
+                    sizeof(response),
+                    "ok version %s",
+                    board.version);
+
+                serial_write_line(serial_fd, response);
+            }
+            else if (parse_command(line, &target_state) == 0)
+            {
+                serial_write_line(serial_fd, "ok motion");
+            }
+            else
+            {
+                serial_write_line(serial_fd, "err unknown command");
+            }
         }
-        else
+
+        ramp_update(
+            &current_state,
+            &target_state,
+            &ramp_config);
+
+        if (send_motion_packet(udp_sock, &current_state) != 0)
         {
-            serial_write_line(serial_fd, "err unknown command");
+            printf("Failed to send motion packet.\n");
+            break;
         }
+
+        sleep_ms(50);
     }
 
     udp_close(udp_sock);
