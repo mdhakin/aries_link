@@ -15,3 +15,11 @@ build/%.o: src/%.c
 
 clean:
 	rm -rf build
+
+SITL_TARGET=build/drive_sitl
+
+sitl: $(SITL_TARGET)
+
+$(SITL_TARGET): src/drive.c test/drive_sitl.c include/drive.h
+	mkdir -p build
+	$(CC) $(CFLAGS) src/drive.c test/drive_sitl.c -o $(SITL_TARGET)
