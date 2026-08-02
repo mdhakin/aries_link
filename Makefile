@@ -20,6 +20,6 @@ SITL_TARGET=build/drive_sitl
 
 sitl: $(SITL_TARGET)
 
-$(SITL_TARGET): src/drive.c test/drive_sitl.c include/drive.h
+$(SITL_TARGET): src/drive.c src/drive_limits.c src/drive_parser.c test/drive_sitl.c include/drive.h include/drive_limits.h include/drive_parser.h
 	mkdir -p build
-	$(CC) $(CFLAGS) src/drive.c test/drive_sitl.c -o $(SITL_TARGET)
+	$(CC) $(CFLAGS) src/drive.c src/drive_limits.c src/drive_parser.c test/drive_sitl.c -o $(SITL_TARGET)
