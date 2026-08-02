@@ -9,6 +9,9 @@
 #include "serial.h"
 #include "udp_tx.h"
 #include "ramp.h"
+#include "drive.h"
+#include "drive_parser.h"
+#include "drive_limits.h"
 
 static int send_motion_packet(int udp_sock, const motion_state_t *state)
 {
@@ -51,13 +54,27 @@ int main(void)
 {
     info_board_t board;
     motion_state_t current_state;
-    motion_state_t target_state;
-    ramp_config_t ramp_config;
+
+    drive_state_t current_drive;
+    drive_state_t target_drive;
+    drive_output_t drive_output;
+    drive_ramp_config_t drive_ramp;
+    drive_limits_t drive_limits;
 
     info_board_init(&board);
     motion_state_init(&current_state);
-    motion_state_init(&target_state);
-    ramp_config_init(&ramp_config);
+
+    drive_state_init(&current_drive);
+    drive_state_init(&target_drive);
+
+    drive_ramp_config_init(&drive_ramp);
+
+    drive_limits_init(&drive_limits);
+
+    drive_mix(
+        &current_drive,
+        &drive_limits,
+        &drive_output);
 
     int serial_fd = serial_open("/dev/ttyUSB0", 9600);
     if (serial_fd < 0)
@@ -99,20 +116,51 @@ int main(void)
 
                 serial_write_line(serial_fd, response);
             }
-            else if (parse_command(line, &target_state) == 0)
-            {
-                serial_write_line(serial_fd, "ok motion");
-            }
             else
             {
-                serial_write_line(serial_fd, "err unknown command");
+                drive_parse_result_t drive_result =
+                    drive_parse_command(line, &target_drive);
+
+                if (drive_result == DRIVE_PARSE_OK)
+                {
+                    drive_apply_limits(
+                        &target_drive,
+                        &drive_limits);
+
+                    printf(
+                        "Drive target: speed=%.2f turn=%.2f\n",
+                        target_drive.speed,
+                        target_drive.turn);
+
+                    serial_write_line(serial_fd, "ok drive");
+                }
+                else
+                {
+                    serial_write_line(
+                        serial_fd,
+                        "err unknown command");
+                }
             }
         }
 
-        ramp_update(
-            &current_state,
-            &target_state,
-            &ramp_config);
+        drive_update(
+            &current_drive,
+            &target_drive,
+            &drive_ramp);
+
+        drive_mix(
+            &current_drive,
+            &drive_limits,
+            &drive_output);
+
+        /*
+        * Adapt the high-level drive output into the existing
+        * motion_state_t expected by send_motion_packet().
+        *
+        * Keep kp, kd and torque from the initialized motion state.
+        */
+        current_state.left_v = drive_output.left_v;
+        current_state.right_v = drive_output.right_v;
 
         if (send_motion_packet(udp_sock, &current_state) != 0)
         {
