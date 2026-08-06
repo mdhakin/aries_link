@@ -20,14 +20,14 @@ static int send_motion_packet(int udp_sock, const motion_state_t *state)
     snprintf(
         msg,
         sizeof(msg),
-        "1 v %.2f\n"
-        "1 kp %.2f\n"
-        "1 kd %.2f\n"
-        "1 t %.2f\n"
-        "2 v %.2f\n"
-        "2 kp %.2f\n"
-        "2 kd %.2f\n"
-        "2 t %.2f\n",
+        "3 v %.2f\n"
+        "3 kp %.2f\n"
+        "3 kd %.2f\n"
+        "3 t %.2f\n"
+        "4 v %.2f\n"
+        "4 kp %.2f\n"
+        "4 kd %.2f\n"
+        "4 t %.2f\n",
         state->left_v,
         state->kp,
         state->kd,
@@ -154,11 +154,11 @@ int main(void)
             &drive_output);
 
         /*
-        * Adapt the high-level drive output into the existing
-        * motion_state_t expected by send_motion_packet().
-        *
-        * Keep kp, kd and torque from the initialized motion state.
-        */
+         * Adapt the high-level drive output into the existing
+         * motion_state_t expected by send_motion_packet().
+         *
+         * Keep kp, kd and torque from the initialized motion state.
+         */
         current_state.left_v = drive_output.left_v;
         current_state.right_v = drive_output.right_v;
 
