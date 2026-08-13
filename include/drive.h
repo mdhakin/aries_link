@@ -1,6 +1,9 @@
 #ifndef DRIVE_H
 #define DRIVE_H
 
+#define DRIVE_LEFT_MOTOR_ID  3U
+#define DRIVE_RIGHT_MOTOR_ID 4U
+
 typedef struct
 {
     float speed;

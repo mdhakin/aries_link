@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -std=c11 -Iinclude
+CFLAGS=-Wall -Wextra -std=c11 -D_DEFAULT_SOURCE -pthread -Iinclude
 SRC=$(wildcard src/*.c)
 OBJ=$(patsubst src/%.c,build/%.o,$(SRC))
 TARGET=build/aries_link
@@ -7,7 +7,7 @@ TARGET=build/aries_link
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $(TARGET)
+	$(CC) $(OBJ) -pthread -o $(TARGET)
 
 build/%.o: src/%.c
 	mkdir -p build
