@@ -3,11 +3,11 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "drive.h"
 
 #include "ak60_telemetry.h"
 
-#define MOTOR_TELEMETRY_MOTOR_3 3U
-#define MOTOR_TELEMETRY_MOTOR_4 4U
+
 
 typedef struct {
   ak60_telemetry_t motor3;
