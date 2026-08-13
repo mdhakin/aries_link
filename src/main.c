@@ -158,10 +158,61 @@ int main(void)
 
                 serial_write_line(serial_fd, response);
             }
+            else if (strcmp(line, "telemetry") == 0)
+            {
+                motor_telemetry_snapshot_t snapshot;
+                if (!snapshot.motor3_valid ||
+                    !snapshot.motor4_valid)
+                {
+                    serial_write_line(
+                        serial_fd,
+                        "err telemetry not ready");
+                }
+                else
+                {
+                    // snprintf + send
+                }
+                
+                if (!motor_telemetry_get_snapshot(
+                        motor_telemetry,
+                        &snapshot))
+                {
+                    serial_write_line(
+                        serial_fd,
+                        "err telemetry unavailable");
+                }
+                else
+                {
+                    char response[256];
+
+                    snprintf(
+                        response,
+                        sizeof(response),
+                        "ok telemetry "
+                        "M%u pos=%.2f vel=%.2f torque=%.2f temp=%d fault=%u "
+                        "M%u pos=%.2f vel=%.2f torque=%.2f temp=%d fault=%u",
+                        DRIVE_LEFT_MOTOR_ID,
+                        snapshot.motor3.position_rad,
+                        snapshot.motor3.velocity_rad_s,
+                        snapshot.motor3.torque_nm,
+                        snapshot.motor3.temperature_c,
+                        snapshot.motor3.fault_code,
+                        DRIVE_RIGHT_MOTOR_ID,
+                        snapshot.motor4.position_rad,
+                        snapshot.motor4.velocity_rad_s,
+                        snapshot.motor4.torque_nm,
+                        snapshot.motor4.temperature_c,
+                        snapshot.motor4.fault_code);
+
+                    serial_write_line(
+                        serial_fd,
+                        response);
+                }
+            }
             else
             {
-                drive_parse_result_t drive_result =
-                    drive_parse_command(line, &target_drive);
+            drive_parse_result_t drive_result =
+                drive_parse_command(line, &target_drive);
 
                 if (drive_result == DRIVE_PARSE_OK)
                 {
