@@ -15,6 +15,7 @@
 #include "motor_telemetry.h"
 #include <time.h>
 #include <stdint.h>
+#include <signal.h>
 
 static uint64_t monotonic_ms(void) {
     struct timespec now;
@@ -71,6 +72,13 @@ static void sleep_ms(long milliseconds)
     ts.tv_nsec = (milliseconds % 1000) * 1000000L;
 
     nanosleep(&ts, NULL);
+}
+static volatile sig_atomic_t keep_running = 1;
+
+static void handle_signal(int signal_number)
+{
+    (void)signal_number;
+    keep_running = 0;
 }
 
 int main(void)
@@ -132,8 +140,10 @@ int main(void)
     }
 
     uint64_t last_telemetry_print_ms = 0;
-    
-    while (1)
+    signal(SIGINT, handle_signal);
+    signal(SIGTERM, handle_signal);
+
+    while (keep_running)
     {
         char line[256];
 
