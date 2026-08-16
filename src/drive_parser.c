@@ -8,7 +8,8 @@ drive_parse_result_t drive_parse_command(
     drive_state_t *target)
 {
     char command[32];
-    float value = 0.0f;
+    float value1 = 0.0f;
+    float value2 = 0.0f;
 
     if (line == NULL || target == NULL)
     {
@@ -22,21 +23,42 @@ drive_parse_result_t drive_parse_command(
         return DRIVE_PARSE_OK;
     }
 
-    if (sscanf(line, "%31s %f", command, &value) != 2)
+    /*
+     * Atomic drive command:
+     *
+     *   drive <speed> <turn>
+     */
+    if (sscanf(line, "%31s %f %f", command, &value1, &value2) == 3)
     {
+        if (strcmp(command, "drive") == 0)
+        {
+            target->speed = value1;
+            target->turn = value2;
+            return DRIVE_PARSE_OK;
+        }
+
         return DRIVE_PARSE_UNKNOWN_COMMAND;
     }
 
-    if (strcmp(command, "speed") == 0)
+    /*
+     * Existing single-value commands:
+     *
+     *   speed <value>
+     *   turn  <value>
+     */
+    if (sscanf(line, "%31s %f", command, &value1) == 2)
     {
-        target->speed = value;
-        return DRIVE_PARSE_OK;
-    }
+        if (strcmp(command, "speed") == 0)
+        {
+            target->speed = value1;
+            return DRIVE_PARSE_OK;
+        }
 
-    if (strcmp(command, "turn") == 0)
-    {
-        target->turn = value;
-        return DRIVE_PARSE_OK;
+        if (strcmp(command, "turn") == 0)
+        {
+            target->turn = value1;
+            return DRIVE_PARSE_OK;
+        }
     }
 
     return DRIVE_PARSE_UNKNOWN_COMMAND;

@@ -19,7 +19,8 @@ static void print_help(void)
         "  stop                Set target speed and turn to zero\n"
         "  help                Show commands\n"
         "  limits              Display drive output limits\n"
-        "  quit                Exit\n");
+        "  quit                Exit\n"
+        "  drive <speed> <turn> Set target speed and steering together\n");
 }
 
 static void print_state(

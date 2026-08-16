@@ -7,7 +7,7 @@ void motion_state_init(motion_state_t *state)
 {
     state->left_v = 0.0f;
     state->right_v = 0.0f;
-    state->kp = 0.07f;
+    state->kp = 0.01f;
     state->kd = 2.0f;
     state->torque = 0.0f;
 }
