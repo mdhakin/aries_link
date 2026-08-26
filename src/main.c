@@ -204,10 +204,12 @@ int main(void) {
             serial_write_line(serial_fd, "err config invalid motor ids");
 
           } else {
-            config.left_motor_id = config_command.left_motor_id;
-            config.right_motor_id = config_command.right_motor_id;
+            aries_config_t pending_config = config;
 
-            if (aries_config_save(ARIES_CONFIG_PATH, &config) != 0) {
+            pending_config.left_motor_id = config_command.left_motor_id;
+            pending_config.right_motor_id = config_command.right_motor_id;
+
+            if (aries_config_save(ARIES_CONFIG_PATH, &pending_config) != 0) {
               serial_write_line(serial_fd, "err config save failed");
             } else {
               serial_write_line(serial_fd, "ok config motor restart_required");
