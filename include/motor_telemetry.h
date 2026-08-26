@@ -3,11 +3,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "drive.h"
 
 #include "ak60_telemetry.h"
-
-
 
 typedef struct {
   ak60_telemetry_t motor3;
@@ -27,9 +24,11 @@ typedef struct motor_telemetry motor_telemetry_t;
 
 motor_telemetry_t* motor_telemetry_create(void);
 
-bool motor_telemetry_start(motor_telemetry_t* telemetry, const char* can_interface);
+bool motor_telemetry_start(motor_telemetry_t* telemetry, const char* can_interface,
+                           unsigned int left_motor_id, unsigned int right_motor_id);
 
-bool motor_telemetry_get_snapshot(motor_telemetry_t* telemetry, motor_telemetry_snapshot_t* snapshot);
+bool motor_telemetry_get_snapshot(motor_telemetry_t* telemetry,
+                                  motor_telemetry_snapshot_t* snapshot);
 
 void motor_telemetry_stop(motor_telemetry_t* telemetry);
 
