@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "config.h"
+#include "config_parser.h"
 #include "drive.h"
 #include "drive_limits.h"
 #include "drive_parser.h"
@@ -142,6 +143,10 @@ int main(void) {
     if (result > 0) {
       printf("RX: %s\n", line);
 
+      config_command_t config_command;
+
+      const config_parse_result_t config_result = config_parse_command(line, &config_command);
+
       if (strcmp(line, "version") == 0) {
         char response[128];
 
@@ -171,16 +176,55 @@ int main(void) {
           serial_write_line(serial_fd, response);
         }
       } else {
-        drive_parse_result_t drive_result = drive_parse_command(line, &target_drive);
+        if (config_result == CONFIG_PARSE_SHOW) {
+          char response[128];
 
-        if (drive_result == DRIVE_PARSE_OK) {
-          drive_apply_limits(&target_drive, &drive_limits);
+          snprintf(response, sizeof(response),
+                   "ok config left_motor_id=%u right_motor_id=%u max_speed=%.2f",
+                   config.left_motor_id, config.right_motor_id, config.max_speed);
 
-          printf("Drive target: speed=%.2f turn=%.2f\n", target_drive.speed, target_drive.turn);
+          serial_write_line(serial_fd, response);
+        } else if (config_result == CONFIG_PARSE_SET_MAX_SPEED) {
+          if (config_command.max_speed <= 0.0f) {
+            serial_write_line(serial_fd, "err config invalid max_speed");
+          } else {
+            config.max_speed = config_command.max_speed;
 
-          serial_write_line(serial_fd, "ok drive");
+            drive_limits_init(&drive_limits, config.max_speed);
+
+            if (aries_config_save(ARIES_CONFIG_PATH, &config) != 0) {
+              serial_write_line(serial_fd, "err config save failed");
+            } else {
+              serial_write_line(serial_fd, "ok config max_speed");
+            }
+          }
+        } else if (config_result == CONFIG_PARSE_SET_MOTORS) {
+          if (config_command.left_motor_id == 0 || config_command.right_motor_id == 0 ||
+              config_command.left_motor_id == config_command.right_motor_id) {
+            serial_write_line(serial_fd, "err config invalid motor ids");
+
+          } else {
+            config.left_motor_id = config_command.left_motor_id;
+            config.right_motor_id = config_command.right_motor_id;
+
+            if (aries_config_save(ARIES_CONFIG_PATH, &config) != 0) {
+              serial_write_line(serial_fd, "err config save failed");
+            } else {
+              serial_write_line(serial_fd, "ok config motor restart_required");
+            }
+          }
         } else {
-          serial_write_line(serial_fd, "err unknown command");
+          drive_parse_result_t drive_result = drive_parse_command(line, &target_drive);
+
+          if (drive_result == DRIVE_PARSE_OK) {
+            drive_apply_limits(&target_drive, &drive_limits);
+
+            printf("Drive target: speed=%.2f turn=%.2f\n", target_drive.speed, target_drive.turn);
+
+            serial_write_line(serial_fd, "ok drive");
+          } else {
+            serial_write_line(serial_fd, "err unknown command");
+          }
         }
       }
     }
